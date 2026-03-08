@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Munkaidő Naptár 2026</title>
+    <title>Munkaidő Naptár Jelmagyarázattal</title>
     <style>
         :root { --p: #005691; --bg: #f4f7f9; --text: #333; --ok: #28a745; --less: #dc3545; --more: #fd7e14; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; display: flex; justify-content: center; }
@@ -28,6 +28,11 @@
         .status-ok { background: var(--ok) !important; color: white; border-color: var(--ok); }
         .status-less { background: var(--less) !important; color: white; border-color: var(--less); }
         .status-more { background: var(--more) !important; color: white; border-color: var(--more); }
+
+        /* Jelmagyarázat */
+        .legend { display: flex; justify-content: space-around; padding: 10px; margin-top: 10px; font-size: 0.75rem; color: #666; font-weight: bold; }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
 
         /* Beviteli kártya */
         .editor-card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-top: 15px; text-align: center; }
@@ -55,6 +60,12 @@
             <div>H</div><div>K</div><div>SZ</div><div>CS</div><div>P</div><div>SZ</div><div>V</div>
         </div>
         <div id="daysGrid" class="days"></div>
+        
+        <div class="legend">
+            <div class="legend-item"><span class="dot" style="background:var(--less)"></span> Kevés (-8ó)</div>
+            <div class="legend-item"><span class="dot" style="background:var(--ok)"></span> Pontos (8ó)</div>
+            <div class="legend-item"><span class="dot" style="background:var(--more)"></span> Plusz (8ó+)</div>
+        </div>
     </div>
 
     <div class="editor-card" id="editor">
@@ -65,7 +76,7 @@
             <input type="time" id="eTime" onfocus="handleFocus('eTime', '14:20')" oninput="updateCurrent()">
         </div>
         <div id="dNet" class="daily-res">0ó 0p</div>
-        <button class="btn-save" onclick="saveData()">MENTÉS</button>
+        <button class="btn-save" onclick="saveData()">ADATOK MENTÉSE</button>
     </div>
 </div>
 
@@ -74,7 +85,6 @@
     const months = ["Január","Február","Március","Április","Május","Június","Július","Augusztus","Szeptember","Október","November","December"];
     const year = 2026;
 
-    // Hónapválasztó feltöltése
     const mSel = document.getElementById('mSel');
     months.forEach((m, i) => {
         const opt = document.createElement('option');
@@ -88,19 +98,17 @@
         const daysGrid = document.getElementById('daysGrid');
         daysGrid.innerHTML = '';
 
-        const firstDay = new Date(year, m, 1).getDay(); // 0=V, 1=H...
-        const shift = firstDay === 0 ? 6 : firstDay - 1; // Magyar hétfői kezdéshez
+        const firstDay = new Date(year, m, 1).getDay();
+        const shift = firstDay === 0 ? 6 : firstDay - 1;
         const daysInMonth = new Date(year, m + 1, 0).getDate();
-        const saved = JSON.parse(localStorage.getItem(`work_grid_${m}`)) || {};
+        const saved = JSON.parse(localStorage.getItem(`work_grid_v6_${m}`)) || {};
 
-        // Üres helyek a hónap elején
         for (let i = 0; i < shift; i++) {
             const div = document.createElement('div');
             div.className = 'day empty';
             daysGrid.appendChild(div);
         }
 
-        // Napok kirajzolása
         for (let i = 1; i <= daysInMonth; i++) {
             const div = document.createElement('div');
             div.className = 'day';
@@ -108,7 +116,6 @@
             div.innerText = i;
             div.onclick = () => selectDay(i);
 
-            // Színkódolás beállítása
             const data = saved[i];
             if (data && data.s && data.e) {
                 const netto = calcNetto(data.s, data.e);
@@ -127,13 +134,14 @@
     function selectDay(d) {
         currentDay = d;
         document.querySelectorAll('.day').forEach(el => el.classList.remove('selected'));
-        document.getElementById(`day-${d}`).classList.add('selected');
+        const el = document.getElementById(`day-${d}`);
+        if(el) el.classList.add('selected');
         loadDayData();
     }
 
     function loadDayData() {
         const m = mSel.value;
-        const saved = JSON.parse(localStorage.getItem(`work_grid_${m}`)) || {};
+        const saved = JSON.parse(localStorage.getItem(`work_grid_v6_${m}`)) || {};
         const data = saved[currentDay] || {s:'', e:''};
         document.getElementById('sTime').value = data.s;
         document.getElementById('eTime').value = data.e;
@@ -161,7 +169,7 @@
 
     function calculateTotals() {
         const m = mSel.value;
-        const saved = JSON.parse(localStorage.getItem(`work_grid_${m}`)) || {};
+        const saved = JSON.parse(localStorage.getItem(`work_grid_v6_${m}`)) || {};
         let total = 0, active = 0;
         for (let d in saved) {
             if (saved[d].s && saved[d].e) {
@@ -178,18 +186,16 @@
 
     function saveData() {
         const m = mSel.value;
-        const saved = JSON.parse(localStorage.getItem(`work_grid_${m}`)) || {};
+        const saved = JSON.parse(localStorage.getItem(`work_grid_v6_${m}`)) || {};
         saved[currentDay] = { s: document.getElementById('sTime').value, e: document.getElementById('eTime').value };
-        localStorage.setItem(`work_grid_${m}`, JSON.stringify(saved));
-        renderCalendar(); // Újrarajzolás a színek miatt
+        localStorage.setItem(`work_grid_v6_${m}`, JSON.stringify(saved));
+        renderCalendar();
     }
 
     function handleFocus(id, def) {
         const el = document.getElementById(id);
         if (!el.value) { el.value = def; updateCurrent(); }
     }
-
-    function toMin(t) { const [h, m] = t.split(':').map(Number); return h * 60 + m; }
 
     renderCalendar();
 </script>
