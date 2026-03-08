@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Munkaidő Naptár Jelmagyarázattal</title>
+    <title>Munkaidő Naptár v7</title>
     <style>
         :root { --p: #005691; --bg: #f4f7f9; --text: #333; --ok: #28a745; --less: #dc3545; --more: #fd7e14; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; display: flex; justify-content: center; }
@@ -29,10 +29,10 @@
         .status-less { background: var(--less) !important; color: white; border-color: var(--less); }
         .status-more { background: var(--more) !important; color: white; border-color: var(--more); }
 
-        /* Jelmagyarázat */
-        .legend { display: flex; justify-content: space-around; padding: 10px; margin-top: 10px; font-size: 0.75rem; color: #666; font-weight: bold; }
-        .legend-item { display: flex; align-items: center; gap: 5px; }
-        .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+        /* Jelmagyarázat - Egymás alatt */
+        .legend { display: flex; flex-direction: column; gap: 8px; padding: 15px 5px 5px 5px; margin-top: 10px; border-top: 1px solid #eee; font-size: 0.85rem; color: #555; }
+        .legend-item { display: flex; align-items: center; gap: 10px; }
+        .dot { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
 
         /* Beviteli kártya */
         .editor-card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-top: 15px; text-align: center; }
@@ -62,9 +62,9 @@
         <div id="daysGrid" class="days"></div>
         
         <div class="legend">
-            <div class="legend-item"><span class="dot" style="background:var(--less)"></span> Kevés (-8ó)</div>
-            <div class="legend-item"><span class="dot" style="background:var(--ok)"></span> Pontos (8ó)</div>
-            <div class="legend-item"><span class="dot" style="background:var(--more)"></span> Plusz (8ó+)</div>
+            <div class="legend-item"><span class="dot" style="background:var(--less)"></span> Kevesebb mint 8 óra</div>
+            <div class="legend-item"><span class="dot" style="background:var(--ok)"></span> Pontosan 8 óra</div>
+            <div class="legend-item"><span class="dot" style="background:var(--more)"></span> Több mint 8 óra</div>
         </div>
     </div>
 
@@ -101,7 +101,7 @@
         const firstDay = new Date(year, m, 1).getDay();
         const shift = firstDay === 0 ? 6 : firstDay - 1;
         const daysInMonth = new Date(year, m + 1, 0).getDate();
-        const saved = JSON.parse(localStorage.getItem(`work_grid_v6_${m}`)) || {};
+        const saved = JSON.parse(localStorage.getItem(`work_grid_v7_${m}`)) || {};
 
         for (let i = 0; i < shift; i++) {
             const div = document.createElement('div');
@@ -141,7 +141,7 @@
 
     function loadDayData() {
         const m = mSel.value;
-        const saved = JSON.parse(localStorage.getItem(`work_grid_v6_${m}`)) || {};
+        const saved = JSON.parse(localStorage.getItem(`work_grid_v7_${m}`)) || {};
         const data = saved[currentDay] || {s:'', e:''};
         document.getElementById('sTime').value = data.s;
         document.getElementById('eTime').value = data.e;
@@ -169,7 +169,7 @@
 
     function calculateTotals() {
         const m = mSel.value;
-        const saved = JSON.parse(localStorage.getItem(`work_grid_v6_${m}`)) || {};
+        const saved = JSON.parse(localStorage.getItem(`work_grid_v7_${m}`)) || {};
         let total = 0, active = 0;
         for (let d in saved) {
             if (saved[d].s && saved[d].e) {
@@ -186,9 +186,9 @@
 
     function saveData() {
         const m = mSel.value;
-        const saved = JSON.parse(localStorage.getItem(`work_grid_v6_${m}`)) || {};
+        const saved = JSON.parse(localStorage.getItem(`work_grid_v7_${m}`)) || {};
         saved[currentDay] = { s: document.getElementById('sTime').value, e: document.getElementById('eTime').value };
-        localStorage.setItem(`work_grid_v6_${m}`, JSON.stringify(saved));
+        localStorage.setItem(`work_grid_v7_${m}`, JSON.stringify(saved));
         renderCalendar();
     }
 
