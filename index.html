@@ -1,1 +1,155 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <title>Munkaidő Napló - Okos Időválasztó</title>
+    <style>
+        body { font-family: 'Arial', sans-serif; background-color: #f0f2f5; padding: 20px; }
+        .szamla-kontener { max-width: 600px; margin: auto; background: white; border-top: 5px solid #005691; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .fejlec { padding: 20px; border-bottom: 1px solid #eee; text-align: center; color: #005691; }
+        .osszesito { display: flex; justify-content: space-around; background: #f8fbff; padding: 15px; border-bottom: 2px solid #005691; }
+        .ertek { display: block; font-size: 1.2em; font-weight: bold; }
+        .minus-jel { color: #d32f2f; }
+        .plus-jel { color: #388e3c; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #eef2f6; padding: 10px; font-size: 0.8em; text-transform: uppercase; color: #666; }
+        td { padding: 12px 8px; border-bottom: 1px solid #eee; text-align: center; }
+        input[type="time"] { border: 1px solid #ccc; border-radius: 4px; padding: 6px; font-family: inherit; cursor: pointer; }
+        input[type="time"]:focus { border-color: #005691; outline: none; background: #fffde7; }
+        .muveletek { padding: 20px; text-align: center; background: #f9f9f9; }
+        .mentes-gomb { background: #005691; color: white; border: none; padding: 12px 40px; cursor: pointer; font-weight: bold; border-radius: 4px; font-size: 1em; }
+        .torles-link { color: #999; font-size: 0.8em; cursor: pointer; margin-top: 15px; display: inline-block; }
+    </style>
+</head>
+<body>
+
+<div class="szamla-kontener">
+    <div class="fejlec">
+        <h2>MUNKAIDŐ ELSZÁMOLÁS</h2>
+        <small>Kattintásra indul: 05:50 és 14:20</small>
+    </div>
+
+    <div class="osszesito">
+        <div>Ledolgozott: <span id="ossz-ora" class="ertek">0ó 0p</span></div>
+        <div>Egyenleg: <span id="egyenleg" class="ertek">0ó 0p</span></div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Nap</th>
+                <th>Kezdés</th>
+                <th>Végzés</th>
+                <th>Nettó (-30p)</th>
+            </tr>
+        </thead>
+        <tbody id="napok-lista"></tbody>
+    </table>
+
+    <div class="muveletek">
+        <button class="mentes-gomb" onclick="mentes()">ADATOK RÖGZÍTÉSE</button><br>
+        <span class="torles-link" onclick="torles()">Havi adatok törlése</span>
+    </div>
+</div>
+
+<script>
+    const lista = document.getElementById('napok-lista');
+    
+    // Táblázat létrehozása üres mezőkkel, de "okos" fókusszal
+    for (let i = 1; i <= 31; i++) {
+        const sor = document.createElement('tr');
+        sor.innerHTML = `
+            <td>${i}.</td>
+            <td><input type="time" id="k-${i}" onfocus="if(!this.value) this.value='05:50'; szamolas();" onchange="szamolas()"></td>
+            <td><input type="time" id="v-${i}" onfocus="if(!this.value) this.value='14:20'; szamolas();" onchange="szamolas()"></td>
+            <td id="n-${i}" style="font-weight:bold;">0ó 0p</td>
+        `;
+        lista.appendChild(sor);
+    }
+
+    function szamolas() {
+        let osszPerc = 0;
+        let napokSzama = 0;
+
+        for (let i = 1; i <= 31; i++) {
+            const kezd = document.getElementById(`k-${i}`).value;
+            const veg = document.getElementById(`v-${i}`).value;
+            const kijelzo = document.getElementById(`n-${i}`);
+
+            if (kezd && veg) {
+                const [h1, m1] = kezd.split(':').map(Number);
+                const [h2, m2] = veg.split(':').map(Number);
+                
+                let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+                if (diff < 0) diff += 1440;
+
+                let netto = Math.max(0, diff - 30);
+                osszPerc += netto;
+                napokSzama++;
+
+                kijelzo.innerText = `${Math.floor(netto/60)}ó ${netto%60}p`;
+                kijelzo.style.color = (netto >= 480) ? "#388e3c" : "#d32f2f";
+            } else {
+                kijelzo.innerText = "0ó 0p";
+                kijelzo.style.color = "#ccc";
+            }
+        }
+
+        const kellPerc = napokSzama * 480;
+        const egyenlegPerc = osszPerc - kellPerc;
+
+        document.getElementById('ossz-ora').innerText = `${Math.floor(osszPerc/60)}ó ${osszPerc%60}p`;
+
+        const egyenlegHely = document.getElementById('egyenleg');
+        const abszolutPerc = Math.abs(egyenlegPerc);
+        const orak = Math.floor(abszolutPerc / 60);
+        const percek = abszolutPerc % 60;
+        
+        if (egyenlegPerc < 0) {
+            egyenlegHely.innerText = `-${orak}ó ${percek}p`;
+            egyenlegHely.className = 'ertek minus-jel';
+        } else {
+            egyenlegHely.innerText = `+${orak}ó ${percek}p`;
+            egyenlegHely.className = 'ertek plus-jel';
+        }
+    }
+
+    function mentes() {
+        const adatok = {};
+        for (let i = 1; i <= 31; i++) {
+            adatok[i] = {
+                k: document.getElementById(`k-${i}`).value,
+                v: document.getElementById(`v-${i}`).value
+            };
+        }
+        localStorage.setItem('munkaido_v5', JSON.stringify(adatok));
+        alert('Adatok rögzítve a memóriába!');
+    }
+
+    function betoltes() {
+        const mentett = localStorage.getItem('munkaido_v5');
+        if (mentett) {
+            const adatok = JSON.parse(mentett);
+            for (let i = 1; i <= 31; i++) {
+                if (adatok[i]) {
+                    document.getElementById(`k-${i}`).value = adatok[i].k;
+                    document.getElementById(`v-${i}`).value = adatok[i].v;
+                }
+            }
+        }
+        szamolas();
+    }
+
+    function torles() {
+        if (confirm('Törli az összes rögzített adatot?')) {
+            localStorage.removeItem('munkaido_v5');
+            location.reload();
+        }
+    }
+
+    window.onload = betoltes;
+</script>
+
+</body>
+</html>
 
