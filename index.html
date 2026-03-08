@@ -2,154 +2,210 @@
 <html lang="hu">
 <head>
     <meta charset="UTF-8">
-    <title>Munkaidő Napló - Okos Időválasztó</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Munkaidő Profi</title>
     <style>
-        body { font-family: 'Arial', sans-serif; background-color: #f0f2f5; padding: 20px; }
-        .szamla-kontener { max-width: 600px; margin: auto; background: white; border-top: 5px solid #005691; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .fejlec { padding: 20px; border-bottom: 1px solid #eee; text-align: center; color: #005691; }
-        .osszesito { display: flex; justify-content: space-around; background: #f8fbff; padding: 15px; border-bottom: 2px solid #005691; }
-        .ertek { display: block; font-size: 1.2em; font-weight: bold; }
-        .minus-jel { color: #d32f2f; }
-        .plus-jel { color: #388e3c; }
-        table { width: 100%; border-collapse: collapse; }
-        th { background: #eef2f6; padding: 10px; font-size: 0.8em; text-transform: uppercase; color: #666; }
-        td { padding: 12px 8px; border-bottom: 1px solid #eee; text-align: center; }
-        input[type="time"] { border: 1px solid #ccc; border-radius: 4px; padding: 6px; font-family: inherit; cursor: pointer; }
-        input[type="time"]:focus { border-color: #005691; outline: none; background: #fffde7; }
-        .muveletek { padding: 20px; text-align: center; background: #f9f9f9; }
-        .mentes-gomb { background: #005691; color: white; border: none; padding: 12px 40px; cursor: pointer; font-weight: bold; border-radius: 4px; font-size: 1em; }
-        .torles-link { color: #999; font-size: 0.8em; cursor: pointer; margin-top: 15px; display: inline-block; }
+        :root { --p: #005691; --bg: #f0f4f8; --text: #1e293b; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; display: flex; justify-content: center; }
+        .app { width: 100%; max-width: 400px; }
+        
+        /* Összesítő */
+        .header { background: var(--p); color: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); margin-bottom: 15px; }
+        .month-sel { width: 100%; background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.3); color: white; padding: 12px; border-radius: 12px; font-weight: bold; margin-bottom: 15px; font-size: 1rem; appearance: none; -webkit-appearance: none; }
+        .stats { display: flex; justify-content: space-between; text-align: center; }
+        .stat-val { display: block; font-size: 1.2rem; font-weight: bold; margin-top: 5px; }
+
+        /* Gördíthető napok - Erősebb érintéskezeléssel */
+        .day-picker { display: flex; overflow-x: scroll; gap: 8px; padding: 10px 5px; margin-bottom: 15px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+        .day-picker::-webkit-scrollbar { display: none; }
+        .day-item { min-width: 55px; height: 70px; background: white; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; border: 2px solid transparent; box-shadow: 0 2px 4px rgba(0,0,0,0.05); flex-shrink: 0; -webkit-tap-highlight-color: transparent; }
+        .day-item.active { border-color: var(--p); background: #eef6ff; box-shadow: 0 0 10px rgba(0,86,145,0.2); }
+        .day-item.weekend { background: #e2e8f0; }
+        .d-num { font-weight: bold; font-size: 1.2rem; }
+        .d-name { font-size: 0.7rem; color: #64748b; text-transform: uppercase; }
+
+        /* Adatbeviteli kártya */
+        .day-card { background: white; padding: 25px 20px; border-radius: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; }
+        .date-title { margin: 0 0 20px 0; color: var(--p); font-size: 1.4rem; font-weight: 800; }
+        .input-group { display: flex; justify-content: space-around; gap: 15px; }
+        .input-box { flex: 1; }
+        .input-box label { display: block; font-size: 0.75rem; font-weight: bold; color: #64748b; margin-bottom: 8px; }
+        input[type="time"] { width: 100%; padding: 12px 5px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 1.1rem; text-align: center; font-family: inherit; }
+        input[type="time"]:focus { border-color: var(--p); outline: none; background: #f8fbff; }
+
+        .daily-netto { font-size: 1.8rem; font-weight: 900; margin-top: 25px; color: var(--p); padding: 10px; background: #f0f7ff; border-radius: 15px; }
+        .btn-save { width: 100%; background: #28a745; color: white; border: none; padding: 18px; border-radius: 18px; font-weight: bold; font-size: 1.1rem; cursor: pointer; margin-top: 20px; box-shadow: 0 4px 10px rgba(40,167,69,0.3); }
     </style>
 </head>
 <body>
 
-<div class="szamla-kontener">
-    <div class="fejlec">
-        <h2>MUNKAIDŐ ELSZÁMOLÁS</h2>
-        <small>Kattintásra indul: 05:50 és 14:20</small>
+<div class="app">
+    <div class="header">
+        <select id="mSel" class="month-sel" onchange="initApp()"></select>
+        <div class="stats">
+            <div><small>Havi munka</small><span id="tWork" class="stat-val">0ó 0p</span></div>
+            <div><small>Egyenleg</small><span id="tBal" class="stat-val">0ó 0p</span></div>
+        </div>
     </div>
 
-    <div class="osszesito">
-        <div>Ledolgozott: <span id="ossz-ora" class="ertek">0ó 0p</span></div>
-        <div>Egyenleg: <span id="egyenleg" class="ertek">0ó 0p</span></div>
+    <div id="dPicker" class="day-picker"></div>
+
+    <div class="day-card">
+        <h3 id="selectedDateText" class="date-title">-</h3>
+        <div class="input-group">
+            <div class="input-box">
+                <label>KEZDÉS</label>
+                <input type="time" id="sTime" oninput="updateCurrent()" onfocus="handleFocus('sTime', '05:50')">
+            </div>
+            <div class="input-box">
+                <label>VÉGZÉS</label>
+                <input type="time" id="eTime" oninput="updateCurrent()" onfocus="handleFocus('eTime', '14:20')">
+            </div>
+        </div>
+        <div id="dNet" class="daily-netto">0ó 0p</div>
     </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th>Nap</th>
-                <th>Kezdés</th>
-                <th>Végzés</th>
-                <th>Nettó (-30p)</th>
-            </tr>
-        </thead>
-        <tbody id="napok-lista"></tbody>
-    </table>
-
-    <div class="muveletek">
-        <button class="mentes-gomb" onclick="mentes()">ADATOK RÖGZÍTÉSE</button><br>
-        <span class="torles-link" onclick="torles()">Havi adatok törlése</span>
-    </div>
+    <button class="btn-save" onclick="manualSave()">MENTÉS RÖGZÍTÉSE</button>
 </div>
 
 <script>
-    const lista = document.getElementById('napok-lista');
-    
-    // Táblázat létrehozása üres mezőkkel, de "okos" fókusszal
-    for (let i = 1; i <= 31; i++) {
-        const sor = document.createElement('tr');
-        sor.innerHTML = `
-            <td>${i}.</td>
-            <td><input type="time" id="k-${i}" onfocus="if(!this.value) this.value='05:50'; szamolas();" onchange="szamolas()"></td>
-            <td><input type="time" id="v-${i}" onfocus="if(!this.value) this.value='14:20'; szamolas();" onchange="szamolas()"></td>
-            <td id="n-${i}" style="font-weight:bold;">0ó 0p</td>
-        `;
-        lista.appendChild(sor);
+    let currentDay = new Date().getDate();
+    const months = ["Január","Február","Március","Április","Május","Június","Július","Augusztus","Szeptember","Október","November","December"];
+    const daysShort = ["V", "H", "K", "Sze", "Cs", "P", "Szo"];
+
+    // Betöltéskor
+    const mSel = document.getElementById('mSel');
+    months.forEach((m, i) => {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.text = m;
+        if(i === new Date().getMonth()) opt.selected = true;
+        mSel.appendChild(opt);
+    });
+
+    function initApp() {
+        const m = parseInt(mSel.value);
+        const year = 2026;
+        const daysInM = new Date(year, m + 1, 0).getDate();
+        const picker = document.getElementById('dPicker');
+        picker.innerHTML = '';
+
+        for (let i = 1; i <= daysInM; i++) {
+            const d = new Date(year, m, i);
+            const isW = d.getDay() === 0 || d.getDay() === 6;
+            const item = document.createElement('div');
+            item.className = `day-item ${i === currentDay ? 'active' : ''} ${isW ? 'weekend' : ''}`;
+            item.id = `day-${i}`;
+            // Mobil-barát eseménykezelő
+            item.onclick = function() { changeDay(i); };
+            item.innerHTML = `<span class="d-name">${daysShort[d.getDay()]}</span><span class="d-num">${i}</span>`;
+            picker.appendChild(item);
+        }
+        loadDayData();
     }
 
-    function szamolas() {
-        let osszPerc = 0;
-        let napokSzama = 0;
-
-        for (let i = 1; i <= 31; i++) {
-            const kezd = document.getElementById(`k-${i}`).value;
-            const veg = document.getElementById(`v-${i}`).value;
-            const kijelzo = document.getElementById(`n-${i}`);
-
-            if (kezd && veg) {
-                const [h1, m1] = kezd.split(':').map(Number);
-                const [h2, m2] = veg.split(':').map(Number);
-                
-                let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
-                if (diff < 0) diff += 1440;
-
-                let netto = Math.max(0, diff - 30);
-                osszPerc += netto;
-                napokSzama++;
-
-                kijelzo.innerText = `${Math.floor(netto/60)}ó ${netto%60}p`;
-                kijelzo.style.color = (netto >= 480) ? "#388e3c" : "#d32f2f";
-            } else {
-                kijelzo.innerText = "0ó 0p";
-                kijelzo.style.color = "#ccc";
-            }
-        }
-
-        const kellPerc = napokSzama * 480;
-        const egyenlegPerc = osszPerc - kellPerc;
-
-        document.getElementById('ossz-ora').innerText = `${Math.floor(osszPerc/60)}ó ${osszPerc%60}p`;
-
-        const egyenlegHely = document.getElementById('egyenleg');
-        const abszolutPerc = Math.abs(egyenlegPerc);
-        const orak = Math.floor(abszolutPerc / 60);
-        const percek = abszolutPerc % 60;
+    function changeDay(newDay) {
+        // Mentés váltás előtt
+        saveState();
+        currentDay = newDay;
         
-        if (egyenlegPerc < 0) {
-            egyenlegHely.innerText = `-${orak}ó ${percek}p`;
-            egyenlegHely.className = 'ertek minus-jel';
+        // UI frissítés
+        document.querySelectorAll('.day-item').forEach(el => el.classList.remove('active'));
+        const activeItem = document.getElementById(`day-${newDay}`);
+        if(activeItem) {
+            activeItem.classList.add('active');
+            activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+        loadDayData();
+    }
+
+    function handleFocus(id, defVal) {
+        const el = document.getElementById(id);
+        if(!el.value) {
+            el.value = defVal;
+            updateCurrent();
+        }
+    }
+
+    function loadDayData() {
+        const m = mSel.value;
+        const storageKey = `work_pro_v5_${m}`;
+        const saved = JSON.parse(localStorage.getItem(storageKey)) || {};
+        const dData = saved[currentDay] || {s: '', e: ''};
+        
+        document.getElementById('sTime').value = dData.s;
+        document.getElementById('eTime').value = dData.e;
+        document.getElementById('selectedDateText').innerText = `${months[m]} ${currentDay}.`;
+        
+        updateCurrent();
+    }
+
+    function updateCurrent() {
+        const s = document.getElementById('sTime').value;
+        const e = document.getElementById('eTime').value;
+        const disp = document.getElementById('dNet');
+
+        if(s && e) {
+            let diff = toMin(e) - toMin(s);
+            if(diff < 0) diff += 1440;
+            let netto = Math.max(0, diff - 30);
+            disp.innerText = `${Math.floor(netto/60)}ó ${netto%60}p`;
         } else {
-            egyenlegHely.innerText = `+${orak}ó ${percek}p`;
-            egyenlegHely.className = 'ertek plus-jel';
+            disp.innerText = "0ó 0p";
         }
+        calculateTotals();
     }
 
-    function mentes() {
-        const adatok = {};
-        for (let i = 1; i <= 31; i++) {
-            adatok[i] = {
-                k: document.getElementById(`k-${i}`).value,
-                v: document.getElementById(`v-${i}`).value
-            };
-        }
-        localStorage.setItem('munkaido_v5', JSON.stringify(adatok));
-        alert('Adatok rögzítve a memóriába!');
+    function toMin(t) {
+        if(!t) return 0;
+        const [h, m] = t.split(':').map(Number);
+        return h * 60 + m;
     }
 
-    function betoltes() {
-        const mentett = localStorage.getItem('munkaido_v5');
-        if (mentett) {
-            const adatok = JSON.parse(mentett);
-            for (let i = 1; i <= 31; i++) {
-                if (adatok[i]) {
-                    document.getElementById(`k-${i}`).value = adatok[i].k;
-                    document.getElementById(`v-${i}`).value = adatok[i].v;
-                }
+    function calculateTotals() {
+        const m = mSel.value;
+        const storageKey = `work_pro_v5_${m}`;
+        const saved = JSON.parse(localStorage.getItem(storageKey)) || {};
+        
+        // Aktuális napot is belevesszük (még mentés előtt)
+        saved[currentDay] = { s: document.getElementById('sTime').value, e: document.getElementById('eTime').value };
+        
+        let total = 0, activeDays = 0;
+        for (let day in saved) {
+            const data = saved[day];
+            if(data.s && data.e) {
+                let d = toMin(data.e) - toMin(data.s);
+                if(d < 0) d += 1440;
+                total += Math.max(0, d - 30);
+                activeDays++;
             }
         }
-        szamolas();
+
+        const balance = total - (activeDays * 480);
+        document.getElementById('tWork').innerText = `${Math.floor(total/60)}ó ${total%60}p`;
+        
+        const bEl = document.getElementById('tBal');
+        const absBal = Math.abs(balance);
+        bEl.innerText = (balance < 0 ? '-' : '+') + `${Math.floor(absBal/60)}ó ${absBal%60}p`;
+        bEl.style.color = balance < 0 ? '#ffb3b3' : '#b3ffcc';
     }
 
-    function torles() {
-        if (confirm('Törli az összes rögzített adatot?')) {
-            localStorage.removeItem('munkaido_v5');
-            location.reload();
-        }
+    function saveState() {
+        const m = mSel.value;
+        const storageKey = `work_pro_v5_${m}`;
+        const saved = JSON.parse(localStorage.getItem(storageKey)) || {};
+        saved[currentDay] = { s: document.getElementById('sTime').value, e: document.getElementById('eTime').value };
+        localStorage.setItem(storageKey, JSON.stringify(saved));
     }
 
-    window.onload = betoltes;
+    function manualSave() {
+        saveState();
+        alert("Adatok rögzítve a böngészőben!");
+    }
+
+    // Indítás
+    initApp();
 </script>
 
 </body>
 </html>
-
