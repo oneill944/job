@@ -3,156 +3,282 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Munkaidő Naptár v10 - Szabadság</title>
+    <title>Munkaidő Naptár v21.0</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
     <style>
-        :root { --p: #005691; --bg: #f4f7f9; --text: #333; --ok: #28a745; --less: #dc3545; --more: #fd7e14; --vac: #007bff; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; display: flex; justify-content: center; }
-        .app { width: 100%; max-width: 450px; }
+        :root { 
+            --p: #005691; --bg: #f4f7f9; --card: #ffffff; --text: #333; --border: #eee;
+            --ok: #28a745; --less: #dc3545; --more: #fd7e14; --vac: #007bff;
+            --sick: #f1c40f; --holiday: #ff4d4d; --overtime: #9b59b6; --del: #ff4d4d;
+            --extra: #20c997;
+            --shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        [data-theme="dark"] {
+            --bg: #121212; --card: #1e1e1e; --text: #e0e0e0; --border: #333;
+            --shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
 
-        .header { background: white; padding: 15px; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 15px; text-align: center; border-top: 5px solid var(--p); }
-        .month-sel { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #ddd; font-size: 1.1rem; font-weight: bold; color: var(--p); cursor: pointer; margin-bottom: 15px; }
-        .stats { display: flex; justify-content: space-around; background: var(--p); color: white; padding: 15px; border-radius: 15px; }
-        .stat-val { display: block; font-weight: bold; font-size: 1.1rem; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; display: flex; justify-content: center; transition: 0.3s; }
+        .app { width: 100%; max-width: 450px; padding-bottom: 20px; }
 
-        .calendar-grid { background: white; padding: 15px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-weight: bold; font-size: 0.75rem; color: #888; margin-bottom: 10px; }
-        .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+        .header { background: var(--card); padding: 20px; border-radius: 24px; box-shadow: var(--shadow); margin-bottom: 15px; }
+        .top-row { display: grid; grid-template-columns: 1fr 2fr auto; gap: 10px; margin-bottom: 15px; }
         
-        .day { height: 50px; display: flex; align-items: center; justify-content: center; border-radius: 10px; cursor: pointer; font-weight: bold; border: 1px solid #eee; transition: 0.2s; }
-        .day:active { transform: scale(0.9); }
-        .day.empty { border: none; cursor: default; }
-        .day.selected { border: 2px solid var(--p) !important; box-shadow: 0 0 8px rgba(0,86,145,0.3); }
+        .sel-box { padding: 10px; border-radius: 12px; border: 1px solid var(--border); font-size: 1rem; font-weight: bold; background: var(--card); color: var(--text); cursor: pointer; }
+        .theme-toggle { background: none; border: none; font-size: 1.5rem; cursor: pointer; padding: 5px; line-height: 1; }
         
-        .status-ok { background: var(--ok) !important; color: white; }
-        .status-less { background: var(--less) !important; color: white; }
-        .status-more { background: var(--more) !important; color: white; }
-        .status-vac { background: var(--vac) !important; color: white; }
+        .stats { 
+            display: flex; 
+            justify-content: space-around; 
+            background: var(--p); 
+            color: white; 
+            padding: 15px; 
+            border-radius: 20px; 
+            box-shadow: 0 4px 12px rgba(0,86,145,0.3); 
+            min-height: 90px; 
+            align-items: center; 
+            position: relative; 
+            padding-bottom: 30px; 
+        }
+        .stat-item { text-align: center; flex: 1; display: flex; flex-direction: column; }
+        .stat-val { display: block; font-weight: 800; font-size: 1.1rem; }
+        .stats small { opacity: 0.9; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px; display: block; line-height: 1.2; margin-bottom: 2px; }
 
-        .legend { display: flex; flex-direction: column; gap: 8px; padding: 15px 5px 5px 5px; margin-top: 10px; border-top: 1px solid #eee; font-size: 0.85rem; color: #555; }
-        .legend-item { display: flex; align-items: center; gap: 10px; }
-        .dot { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+        .holiday-badge { 
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ff4d4d; 
+            color: black; 
+            font-weight: 900; 
+            padding: 3px 12px; 
+            border-radius: 6px; 
+            font-size: 0.7rem; 
+            text-transform: uppercase; 
+            display: none; 
+            white-space: nowrap;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
 
-        .editor-card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-top: 15px; text-align: center; }
-        .date-label { font-size: 1.2rem; font-weight: 800; color: var(--p); margin-bottom: 15px; display: block; }
-        .inputs { display: flex; justify-content: center; gap: 15px; align-items: center; }
-        input[type="time"] { padding: 10px; border-radius: 10px; border: 2px solid #ddd; font-size: 1rem; font-family: inherit; }
+        .calendar-card { background: var(--card); padding: 18px; border-radius: 24px; box-shadow: var(--shadow); }
+        .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-weight: bold; font-size: 0.7rem; color: #888; margin-bottom: 12px; }
+        .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
         
-        .daily-res { margin-top: 15px; font-size: 1.3rem; font-weight: bold; color: var(--p); }
-        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
-        .btn-save { background: var(--p); color: white; border: none; padding: 15px; border-radius: 12px; font-weight: bold; cursor: pointer; }
-        .btn-vac { background: var(--vac); color: white; border: none; padding: 15px; border-radius: 12px; font-weight: bold; cursor: pointer; }
+        .day { height: 52px; display: flex; align-items: center; justify-content: center; border-radius: 12px; cursor: pointer; font-weight: bold; border: 1px solid var(--border); transition: 0.15s; background: var(--card); position: relative; font-size: 0.9rem; }
+        .day.empty { border: none; background: transparent; cursor: default; }
+        .day.selected { border: 2.5px solid var(--p) !important; box-shadow: 0 0 10px rgba(0,86,145,0.4); z-index: 1; }
+        
+        .day.holiday { border: 2px solid var(--holiday) !important; color: var(--holiday); }
+        .day.holiday::after { content: '🇭🇺'; position: absolute; font-size: 0.5rem; top: 2px; right: 2px; }
+
+        .status-ok { background: var(--ok) !important; color: white; border: none; }
+        .status-less { background: var(--less) !important; color: white; border: none; }
+        .status-more { background: var(--more) !important; color: white; border: none; }
+        .status-vac { background: var(--vac) !important; color: white; border: none; }
+        .status-sick { background: var(--sick) !important; color: #333; border: none; }
+        .status-ot { background: var(--overtime) !important; color: white; border: none; }
+        .status-extra { background: var(--extra) !important; color: white; border: none; }
+
+        .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 20px; padding: 15px 5px 5px 5px; border-top: 1px solid var(--border); }
+        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.7rem; color: #888; font-weight: 600; }
+        .dot { width: 10px; height: 10px; border-radius: 3px; position: relative; }
+        .dot-holiday { border: 1.5px solid var(--holiday); background: transparent; }
+        .dot-holiday::after { content: '🇭🇺'; position: absolute; font-size: 0.45rem; top: -4px; right: -5px; }
+
+        .editor-card { background: var(--card); padding: 22px; border-radius: 24px; box-shadow: var(--shadow); margin-top: 15px; text-align: center; }
+        .date-label { font-size: 1.3rem; font-weight: 800; color: var(--p); margin-bottom: 18px; display: block; }
+        input[type="time"] { padding: 12px; border-radius: 14px; border: 2px solid var(--border); font-size: 1.1rem; background: var(--card); color: var(--text); text-align: center; width: 110px; }
+        .daily-res { margin: 15px 0; font-size: 1.4rem; font-weight: 800; color: var(--p); }
+        
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        button.action-btn { padding: 14px; border-radius: 16px; font-weight: bold; cursor: pointer; border: none; transition: 0.2s; font-size: 0.9rem; }
+        
+        .btn-save { background: var(--p); color: white; grid-column: span 2; margin-top: 5px; padding: 18px; }
+        .btn-vac { background: var(--vac); color: white; }
+        .btn-sick { background: var(--sick); color: #333; }
+        .btn-del { background: var(--del); color: black; }
+        .btn-extra { background: var(--extra); color: white; }
+        .btn-ot { background: var(--overtime); color: white; grid-column: span 2; margin-top: 5px; display: none; }
+        
+        .btn-capture { background: #333; color: white; width: 100%; margin-top: 15px; grid-column: span 2; font-size: 0.8rem; }
+        #captureArea { position: absolute; left: -9999px; top: -9999px; width: 420px; padding: 20px; background: white; color: black; }
+        #captureArea table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        #captureArea th, #captureArea td { border: 1px solid #ccc; padding: 8px; text-align: center; font-size: 0.85rem; }
     </style>
 </head>
-<body>
+<body data-theme="light">
 
 <div class="app">
     <div class="header">
-        <select id="mSel" class="month-sel" onchange="renderCalendar()"></select>
+        <div class="top-row">
+            <select id="ySel" class="sel-box" onchange="renderCalendar()"></select>
+            <select id="mSel" class="sel-box" onchange="renderCalendar()"></select>
+            <button class="theme-toggle" onclick="toggleTheme()" id="tBtn">🌙</button>
+        </div>
         <div class="stats">
-            <div><small>Ledolgozott</small><span id="tWork" class="stat-val">0ó 0p</span></div>
-            <div><small>Egyenleg</small><span id="tBal" class="stat-val">0ó 0p</span></div>
+            <div class="stat-item">
+                <small>Havi munka</small>
+                <span id="tWork" class="stat-val">0ó 0p</span>
+            </div>
+            <div class="stat-item">
+                <small id="balLabel">Egyenleg</small>
+                <span id="tBal" class="stat-val">0ó 0p</span>
+            </div>
+            <div id="holBadge" class="holiday-badge">ÜNNEP</div>
         </div>
     </div>
 
-    <div class="calendar-grid">
+    <div class="calendar-card">
         <div class="weekdays">
             <div>H</div><div>K</div><div>SZ</div><div>CS</div><div>P</div><div>SZ</div><div>V</div>
         </div>
         <div id="daysGrid" class="days"></div>
-        
         <div class="legend">
             <div class="legend-item"><span class="dot" style="background:var(--less)"></span> Kevesebb mint 8 óra</div>
-            <div class="legend-item"><span class="dot" style="background:var(--ok)"></span> Pontosan 8 óra</div>
-            <div class="legend-item"><span class="dot" style="background:var(--more)"></span> Több mint 8 óra</div>
             <div class="legend-item"><span class="dot" style="background:var(--vac)"></span> Szabadság</div>
+            <div class="legend-item"><span class="dot" style="background:var(--ok)"></span> Pontosan 8 óra</div>
+            <div class="legend-item"><span class="dot" style="background:var(--sick)"></span> Táppénz</div>
+            <div class="legend-item"><span class="dot" style="background:var(--more)"></span> Több mint 8 óra</div>
+            <div class="legend-item"><span class="dot" style="background:var(--overtime)"></span> Túlóra</div>
+            <div class="legend-item"><span class="dot" style="background:var(--extra)"></span> Csúszó</div>
+            <div class="legend-item"><span class="dot dot-holiday"></span> Ünnepnap 🇭🇺</div>
         </div>
+        <button class="action-btn btn-capture" onclick="captureMonth()">📷 HÓNAP MENTÉSE KÉPKÉNT</button>
     </div>
 
     <div class="editor-card">
         <span id="selectedDateText" class="date-label">-</span>
-        <div class="inputs">
+        <div style="display:flex; justify-content:center; gap:10px; align-items:center;">
             <input type="time" id="sTime" onfocus="handleFocus('sTime', '05:50')" oninput="updateCurrent()">
             <span>-</span>
             <input type="time" id="eTime" onfocus="handleFocus('eTime', '14:20')" oninput="updateCurrent()">
         </div>
         <div id="dNet" class="daily-res">0ó 0p</div>
         <div class="btn-group">
-            <button class="btn-vac" onclick="setVacation()">SZABADSÁG</button>
-            <button class="btn-save" onclick="saveData()">MENTÉS</button>
+            <button class="action-btn btn-vac" onclick="setSpecial('vac')">SZABADSÁG</button>
+            <button class="action-btn btn-sick" onclick="setSpecial('sick')">TÁPPÉNZ</button>
+            <button class="action-btn btn-del" onclick="deleteDay()">TÖRLÉS</button>
+            <button class="action-btn btn-extra" onclick="setSpecial('extra')">CSÚSZÓ</button>
+            <button id="otBtn" class="action-btn btn-ot" onclick="setSpecial('ot')">TÚLÓRA</button>
+            <button class="action-btn btn-save" onclick="saveData()">MENTÉS</button>
         </div>
     </div>
 </div>
 
+<div id="captureArea"></div>
+
 <script>
-    let currentDay = new Date().getDate();
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.body.setAttribute('data-theme', savedTheme);
+    document.getElementById('tBtn').innerText = savedTheme === 'dark' ? '☀️' : '🌙';
+
     const months = ["Január","Február","Március","Április","Május","Június","Július","Augusztus","Szeptember","Október","November","December"];
-    const year = 2026;
+    
+    function getHolidaysForYear(y) {
+        let hols = {
+            [`${y}-0-1`]: "Újév", [`${y}-2-15`]: "Március 15.", [`${y}-4-1`]: "Munka ünnepe",
+            [`${y}-7-20`]: "Államalapítás", [`${y}-9-23`]: "1956-os forradalom", [`${y}-10-1`]: "Mindenszentek",
+            [`${y}-11-24`]: "Szenteste", [`${y}-11-25`]: "Karácsony", [`${y}-11-26`]: "Karácsony", [`${y}-11-31`]: "Szilveszter"
+        };
+        const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4,
+              f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30,
+              i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451),
+              month = Math.floor((h + l - 7 * m + 114) / 31), day = ((h + l - 7 * m + 114) % 31) + 1;
+        
+        const easterMonday = new Date(y, month - 1, day + 1);
+        const goodFriday = new Date(y, month - 1, day - 2);
+        const pentecostMonday = new Date(y, month - 1, day + 50);
+
+        hols[`${y}-${goodFriday.getMonth()}-${goodFriday.getDate()}`] = "Nagypéntek";
+        hols[`${y}-${easterMonday.getMonth()}-${easterMonday.getDate()}`] = "Húsvéthétfő";
+        hols[`${y}-${pentecostMonday.getMonth()}-${pentecostMonday.getDate()}`] = "Pünkösdhétfő";
+        return hols;
+    }
+
+    let currentDay = new Date().getDate();
+    let currentYear = new Date().getFullYear();
+
+    const ySel = document.getElementById('ySel');
+    for(let y=2024; y<=2030; y++) {
+        const opt = document.createElement('option'); opt.value = y; opt.text = y;
+        if(y === currentYear) opt.selected = true;
+        ySel.appendChild(opt);
+    }
 
     const mSel = document.getElementById('mSel');
     months.forEach((m, i) => {
-        const opt = document.createElement('option');
-        opt.value = i; opt.text = m;
+        const opt = document.createElement('option'); opt.value = i; opt.text = m;
         if(i === new Date().getMonth()) opt.selected = true;
         mSel.appendChild(opt);
     });
 
+    function isHoliday(y, m, d) { return getHolidaysForYear(y)[`${y}-${m}-${d}`] || false; }
+
     function renderCalendar() {
-        const m = parseInt(mSel.value);
+        const y = parseInt(ySel.value), m = parseInt(mSel.value);
         const daysGrid = document.getElementById('daysGrid');
         daysGrid.innerHTML = '';
-
-        const firstDay = new Date(year, m, 1).getDay();
-        const shift = firstDay === 0 ? 6 : firstDay - 1;
-        const daysInMonth = new Date(year, m + 1, 0).getDate();
-        const saved = JSON.parse(localStorage.getItem(`work_v10_${m}`)) || {};
+        const shift = (new Date(y, m, 1).getDay() || 7) - 1;
+        const daysInMonth = new Date(y, m + 1, 0).getDate();
+        const saved = JSON.parse(localStorage.getItem(`work_${y}_${m}`)) || {};
 
         for (let i = 0; i < shift; i++) {
-            const div = document.createElement('div');
-            div.className = 'day empty';
+            const div = document.createElement('div'); div.className = 'day empty';
             daysGrid.appendChild(div);
         }
 
         for (let i = 1; i <= daysInMonth; i++) {
             const div = document.createElement('div');
-            div.className = 'day';
-            div.id = `day-${i}`;
-            div.innerText = i;
+            div.className = 'day'; div.id = `day-${i}`; div.innerText = i;
             div.onclick = () => selectDay(i);
-
+            if(isHoliday(y, m, i)) div.classList.add('holiday');
             const data = saved[i];
-            if (data && data.s && data.e) {
-                if (data.isVac) {
-                    div.classList.add('status-vac');
-                } else {
+            if (data && (data.s || data.isVac || data.isSick || data.isOT || data.isExtra)) {
+                if (data.isVac) div.classList.add('status-vac');
+                else if (data.isSick) div.classList.add('status-sick');
+                else if (data.isOT) div.classList.add('status-ot');
+                else if (data.isExtra) div.classList.add('status-extra');
+                else {
                     const netto = calcNetto(data.s, data.e);
                     if (netto === 480) div.classList.add('status-ok');
                     else if (netto < 480) div.classList.add('status-less');
                     else div.classList.add('status-more');
                 }
             }
-
             if (i === currentDay) div.classList.add('selected');
             daysGrid.appendChild(div);
         }
-        loadDayData();
-        calculateTotals();
+        loadDayData(); calculateTotals();
     }
 
     function selectDay(d) {
         currentDay = d;
         document.querySelectorAll('.day').forEach(el => el.classList.remove('selected'));
-        const el = document.getElementById(`day-${d}`);
-        if(el) el.classList.add('selected');
-        loadDayData();
+        if(document.getElementById(`day-${d}`)) document.getElementById(`day-${d}`).classList.add('selected');
+        loadDayData(); calculateTotals();
     }
 
     function loadDayData() {
-        const m = mSel.value;
-        const saved = JSON.parse(localStorage.getItem(`work_v10_${m}`)) || {};
-        const data = saved[currentDay] || {s:'', e:'', isVac: false};
-        document.getElementById('sTime').value = data.s;
-        document.getElementById('eTime').value = data.e;
-        document.getElementById('selectedDateText').innerText = `${months[m]} ${currentDay}.`;
+        const y = parseInt(ySel.value), m = parseInt(mSel.value);
+        const saved = JSON.parse(localStorage.getItem(`work_${y}_${m}`)) || {};
+        const data = saved[currentDay] || {s:'', e:'', isVac: false, isSick: false, isOT: false, isExtra: false};
+        
+        document.getElementById('sTime').value = data.s || '';
+        document.getElementById('eTime').value = data.e || '';
+        document.getElementById('selectedDateText').innerText = `${y}. ${months[m]} ${currentDay}.`;
+        
+        const dayOfWeek = new Date(y, m, currentDay).getDay();
+        const otBtn = document.getElementById('otBtn');
+
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+            otBtn.style.display = 'block';
+        } else {
+            otBtn.style.display = 'none';
+        }
+
         updateCurrent();
     }
 
@@ -166,56 +292,135 @@
     }
 
     function updateCurrent() {
-        const s = document.getElementById('sTime').value;
-        const e = document.getElementById('eTime').value;
-        const disp = document.getElementById('dNet');
-        if (s && e) {
-            const netto = calcNetto(s, e);
-            disp.innerText = `${Math.floor(netto/60)}ó ${netto%60}p`;
-        } else disp.innerText = "0ó 0p";
+        const s = document.getElementById('sTime').value, e = document.getElementById('eTime').value;
+        const netto = calcNetto(s, e);
+        document.getElementById('dNet').innerText = s && e ? `${Math.floor(netto/60)}ó ${netto%60}p` : "0ó 0p";
     }
 
-    function setVacation() {
+    function setSpecial(type) {
         document.getElementById('sTime').value = "05:50";
         document.getElementById('eTime').value = "14:20";
-        updateCurrent();
-        saveData(true);
+        saveData(type === 'vac', type === 'sick', type === 'ot', type === 'extra');
     }
 
-    function saveData(isVac = false) {
-        const m = mSel.value;
-        const saved = JSON.parse(localStorage.getItem(`work_v10_${m}`)) || {};
+    function deleteDay() {
+        const y = ySel.value, m = mSel.value;
+        const saved = JSON.parse(localStorage.getItem(`work_${y}_${m}`)) || {};
+        delete saved[currentDay];
+        localStorage.setItem(`work_${y}_${m}`, JSON.stringify(saved));
+        renderCalendar();
+    }
+
+    function saveData(isVac = false, isSick = false, isOT = false, isExtra = false) {
+        const y = ySel.value, m = mSel.value;
+        const saved = JSON.parse(localStorage.getItem(`work_${y}_${m}`)) || {};
         saved[currentDay] = { 
             s: document.getElementById('sTime').value, 
             e: document.getElementById('eTime').value,
-            isVac: isVac
+            isVac: isVac, isSick: isSick, isOT: isOT, isExtra: isExtra
         };
-        localStorage.setItem(`work_v10_${m}`, JSON.stringify(saved));
+        localStorage.setItem(`work_${y}_${m}`, JSON.stringify(saved));
         renderCalendar();
     }
 
     function calculateTotals() {
-        const m = mSel.value;
-        const saved = JSON.parse(localStorage.getItem(`work_v10_${m}`)) || {};
-        let total = 0, active = 0;
-        for (let d in saved) {
-            if (saved[d].s && saved[d].e) {
-                total += calcNetto(saved[d].s, saved[d].e);
-                active++;
+        const targetY = parseInt(ySel.value), targetM = parseInt(mSel.value);
+        let cumulativeBalance = 0, monthlyWork = 0;
+        const holidayName = isHoliday(targetY, targetM, currentDay);
+        const holBadge = document.getElementById('holBadge');
+
+        for (let m = 0; m <= targetM; m++) {
+            const saved = JSON.parse(localStorage.getItem(`work_${targetY}_${m}`)) || {};
+            for (let d in saved) {
+                if (m === targetM && parseInt(d) > currentDay) continue;
+                const data = saved[d];
+                if (data.s && data.e) {
+                    const netto = calcNetto(data.s, data.e);
+                    if (data.isOT) {
+                        cumulativeBalance += 0; 
+                    } else if (data.isExtra) {
+                        cumulativeBalance -= 480; 
+                    } else {
+                        cumulativeBalance += (netto - 480);
+                    }
+                    
+                    if (m === targetM) {
+                        if (data.isExtra) monthlyWork += 480;
+                        else monthlyWork += netto;
+                    }
+                }
             }
         }
-        const bal = total - (active * 480);
-        document.getElementById('tWork').innerText = `${Math.floor(total/60)}ó ${total%60}p`;
+        document.getElementById('tWork').innerText = `${Math.floor(monthlyWork/60)}ó ${monthlyWork%60}p`;
+        document.getElementById('balLabel').innerText = `Egyenleg (${months[targetM]} ${currentDay}-ig)`;
+        if (holidayName) { holBadge.innerText = holidayName; holBadge.style.display = 'block'; }
+        else { holBadge.style.display = 'none'; }
         const bEl = document.getElementById('tBal');
-        bEl.innerText = (bal < 0 ? '-' : '+') + `${Math.floor(Math.abs(bal)/60)}ó ${Math.abs(bal)%60}p`;
-        bEl.style.color = bal < 0 ? '#ffb3b3' : '#b3ffcc';
+        bEl.innerText = (cumulativeBalance < 0 ? '-' : '+') + `${Math.floor(Math.abs(cumulativeBalance)/60)}ó ${Math.abs(cumulativeBalance)%60}p`;
+        bEl.style.color = cumulativeBalance < 0 ? '#ffb3b3' : '#b3ffcc';
+    }
+
+    function toggleTheme() {
+        const nt = document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        document.body.setAttribute('data-theme', nt);
+        document.getElementById('tBtn').innerText = nt === 'dark' ? '☀️' : '🌙';
+        localStorage.setItem('theme', nt);
+    }
+
+    async function captureMonth() {
+        const y = ySel.value, m = mSel.value;
+        const saved = JSON.parse(localStorage.getItem(`work_${y}_${m}`)) || {};
+        const captureArea = document.getElementById('captureArea');
+        let monthlyWork = 0, bal = 0, rows = '';
+        const daysInMonth = new Date(y, parseInt(m) + 1, 0).getDate();
+        for(let d=1; d<=daysInMonth; d++) {
+            const data = saved[d] || {};
+            const holName = isHoliday(y, m, d);
+            const dayOfWeek = new Date(y, m, d).getDay();
+            const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+
+            if(data.s && data.e) {
+                const netto = data.isExtra ? 480 : calcNetto(data.s, data.e);
+                if (data.isOT) bal += 0; 
+                else if (data.isExtra) bal -= 480;
+                else bal += (netto - 480);
+                
+                monthlyWork += netto;
+                let st = data.isVac ? 'SZABI' : (data.isSick ? 'TÁPPÉNZ' : (data.isOT ? 'TÚLÓRA' : (data.isExtra ? 'CSÚSZÓ' : (netto > 480 ? '+' : (netto < 480 ? '-' : 'OK')))));
+                if(holName && !isWeekend) st += ` / ${holName}`;
+                let rowColor = (data.isOT || data.isExtra) ? 'style="background:#f3e5f5;"' : '';
+                rows += `<tr ${rowColor}><td>${d}.</td><td>${data.isExtra ? '---' : data.s}</td><td>${data.isExtra ? '---' : data.e}</td><td>${Math.floor(netto/60)}ó ${netto%60}p</td><td>${st}</td></tr>`;
+            } else if(holName && !isWeekend) {
+                rows += `<tr style="background:#ffecec;"><td>${d}.</td><td colspan="3">---</td><td>${holName}</td></tr>`;
+            }
+        }
+        captureArea.innerHTML = `
+            <div style="text-align:center; border-bottom:2px solid #005691; padding-bottom:10px;">
+                <h2 style="margin:0; color:#005691;">${y}. ${months[m]}</h2>
+                <small style="color:#888;">Munkaidő Kimutatás</small>
+            </div>
+            <div style="background:#005691; color:white; display:flex; justify-content:space-around; padding:15px; border-radius:12px; margin:15px 0;">
+                <div><small>HAVI MUNKA</small><br><b>${Math.floor(monthlyWork/60)}ó ${monthlyWork%60}p</b></div>
+                <div><small>HAVI EGYENLEG</small><br><b>${bal >= 0 ? '+' : ''}${Math.floor(bal/60)}ó ${Math.abs(bal)%60}p</b></div>
+            </div>
+            <table><tr style="background:#f0f0f0;"><th>Nap</th><th>Kezdés</th><th>Vége</th><th>Netto</th><th>Státusz</th></tr>${rows}</table>
+        `;
+        const canvas = await html2canvas(captureArea, { scale: 2 });
+        canvas.toBlob(async (blob) => {
+            const file = new File([blob], `Munkaido_${y}_${months[m]}.png`, { type: 'image/png' });
+            if (navigator.share && navigator.canShare({ files: [file] })) {
+                await navigator.share({ files: [file], title: `Munkaidő ${y} ${months[m]}` });
+            } else {
+                const link = document.createElement('a'); link.href = URL.createObjectURL(blob);
+                link.download = `Munkaido_${y}_${months[m]}.png`; link.click();
+            }
+        });
     }
 
     function handleFocus(id, def) {
         const el = document.getElementById(id);
         if (!el.value) { el.value = def; updateCurrent(); }
     }
-
     renderCalendar();
 </script>
 </body>
