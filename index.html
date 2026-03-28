@@ -3,427 +3,266 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Munkaidő Naptár v22.0</title>
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
+    <title>Közös Bolt Pro +</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
-        :root { 
-            --p: #005691; --bg: #f4f7f9; --card: #ffffff; --text: #333; --border: #eee;
-            --ok: #28a745; --less: #dc3545; --more: #fd7e14; --vac: #007bff;
-            --sick: #f1c40f; --holiday: #ff4d4d; --overtime: #9b59b6; --del: #ff4d4d;
-            --extra: #808080; /* Szürke szín a Csúszónak */
-            --shadow: 0 4px 15px rgba(0,0,0,0.05);
+        :root {
+            --bg: #121212; --card: #1e1e1e; --text: #e0e0e0;
+            --primary: #bb86fc; --success: #2e7d32; --danger: #c62828; --grey: #333;
         }
-        [data-theme="dark"] {
-            --bg: #121212; --card: #1e1e1e; --text: #e0e0e0; --border: #333;
-            --shadow: 0 4px 15px rgba(0,0,0,0.3);
+        body.light {
+            --bg: #f0f0f7; --card: #ffffff; --text: #1c1c1e;
+            --primary: #5856d6; --success: #34c759; --danger: #ff3b30; --grey: #e5e5ea;
         }
-
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; display: flex; justify-content: center; transition: 0.3s; }
-        .app { width: 100%; max-width: 450px; padding-bottom: 20px; }
-
-        .header { background: var(--card); padding: 20px; border-radius: 24px; box-shadow: var(--shadow); margin-bottom: 15px; }
-        .top-row { display: grid; grid-template-columns: 1fr 2fr auto; gap: 10px; margin-bottom: 15px; }
+        * { -webkit-tap-highlight-color: transparent; user-select: none !important; -webkit-user-select: none !important; box-sizing: border-box; }
+        body { background: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; padding: 10px; transition: 0.2s; }
         
-        .sel-box { padding: 10px; border-radius: 12px; border: 1px solid var(--border); font-size: 1rem; font-weight: bold; background: var(--card); color: var(--text); cursor: pointer; }
-        .theme-toggle { background: none; border: none; font-size: 1.5rem; cursor: pointer; padding: 5px; line-height: 1; }
-        
-        .stats { 
-            display: flex; 
-            justify-content: space-around; 
-            background: var(--p); 
-            color: white; 
-            padding: 15px; 
-            border-radius: 20px; 
-            box-shadow: 0 4px 12px rgba(0,86,145,0.3); 
-            min-height: 90px; 
-            align-items: center; 
-            position: relative; 
-            padding-bottom: 30px; 
-        }
-        .stat-item { text-align: center; flex: 1; display: flex; flex-direction: column; }
-        .stat-val { display: block; font-weight: 800; font-size: 1.1rem; }
-        .stats small { opacity: 0.9; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px; display: block; line-height: 1.2; margin-bottom: 2px; }
+        .header { text-align: center; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        .theme-btn { position: absolute; top: 10px; right: 10px; font-size: 20px; border: none; background: none; color: var(--text); cursor: pointer; }
 
-        .holiday-badge { 
-            position: absolute;
-            bottom: 8px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #ff4d4d; 
-            color: black; 
-            font-weight: 900; 
-            padding: 3px 12px; 
-            border-radius: 6px; 
-            font-size: 0.7rem; 
-            text-transform: uppercase; 
-            display: none; 
-            white-space: nowrap;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
+        .btn-row { display: flex; gap: 8px; margin-bottom: 15px; }
+        .main-btn { flex: 1; padding: 14px; border-radius: 10px; border: none; font-weight: bold; font-size: 13px; color: white; text-transform: uppercase; cursor: pointer; }
 
-        .calendar-card { background: var(--card); padding: 18px; border-radius: 24px; box-shadow: var(--shadow); }
-        .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-weight: bold; font-size: 0.7rem; color: #888; margin-bottom: 12px; }
-        .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
-        
-        .day { height: 52px; display: flex; align-items: center; justify-content: center; border-radius: 12px; cursor: pointer; font-weight: bold; border: 1px solid var(--border); transition: 0.15s; background: var(--card); position: relative; font-size: 0.9rem; }
-        .day.empty { border: none; background: transparent; cursor: default; }
-        .day.selected { border: 2.5px solid var(--p) !important; box-shadow: 0 0 10px rgba(0,86,145,0.4); z-index: 1; }
-        
-        .day.holiday { border: 2px solid var(--holiday) !important; color: var(--holiday); }
-        .day.holiday::after { content: '🇭🇺'; position: absolute; font-size: 0.5rem; top: 2px; right: 2px; }
+        .list-container { display: flex; flex-direction: column; gap: 6px; min-height: 40px; }
 
-        .status-ok { background: var(--ok) !important; color: white; border: none; }
-        .status-less { background: var(--less) !important; color: white; border: none; }
-        .status-more { background: var(--more) !important; color: white; border: none; }
-        .status-vac { background: var(--vac) !important; color: white; border: none; }
-        .status-sick { background: var(--sick) !important; color: #333; border: none; }
-        .status-ot { background: var(--overtime) !important; color: white; border: none; }
-        .status-extra { background: var(--extra) !important; color: white; border: none; }
+        .bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .column-label { text-align: center; font-size: 11px; font-weight: bold; margin-bottom: 8px; padding: 10px; border-radius: 8px; color: var(--text); background: var(--grey); }
 
-        .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 20px; padding: 15px 5px 5px 5px; border-top: 1px solid var(--border); }
-        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.7rem; color: #888; font-weight: 600; }
-        .dot { width: 10px; height: 10px; border-radius: 3px; position: relative; }
-        .dot-holiday { border: 1.5px solid var(--holiday); background: transparent; }
-        .dot-holiday::after { content: '🇭🇺'; position: absolute; font-size: 0.45rem; top: -4px; right: -5px; }
+        .item { background: var(--card); padding: 10px; border-radius: 8px; display: flex; align-items: center; gap: 8px; touch-action: none; border: 1px solid transparent; }
+        .item.dragging { opacity: 0.7; background: #333; border: 1px dashed var(--primary); transform: scale(1.02); z-index: 100; }
+        
+        .item.checked { background: var(--success) !important; color: white; border: none; font-size: 13px; padding: 8px; }
+        .item.cancelled { background: var(--danger) !important; color: white; border: none; font-size: 13px; padding: 8px; }
+        
+        .item-text { flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .actions { display: flex; gap: 4px; }
+        
+        .btn-sm { border: none; width: 32px; height: 32px; border-radius: 6px; font-size: 14px; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; background: rgba(255,255,255,0.15); }
+        .btn-check-full { background: #4caf50 !important; color: white; }
+        .btn-x-full { background: #f44336 !important; color: white; }
 
-        .editor-card { background: var(--card); padding: 22px; border-radius: 24px; box-shadow: var(--shadow); margin-top: 15px; text-align: center; }
-        .date-label { font-size: 1.3rem; font-weight: 800; color: var(--p); margin-bottom: 18px; display: block; }
-        input[type="time"] { padding: 12px; border-radius: 14px; border: 2px solid var(--border); font-size: 1.1rem; background: var(--card); color: var(--text); text-align: center; width: 110px; }
-        .daily-res { margin: 15px 0; font-size: 1.4rem; font-weight: 800; color: var(--p); }
+        #inputModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: flex-start; padding-top: 15vh; z-index: 1000; }
+        .modal-content { background: var(--card); padding: 20px; border-radius: 15px; width: 85%; max-width: 320px; border: 1px solid #444; }
+        .modal-content input { width: 100%; padding: 14px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #555; background: var(--bg); color: var(--text); font-size: 18px; outline: none; user-select: text !important; -webkit-user-select: text !important; }
+
+        .clear-all { background: none; color: var(--danger); border: 1px solid var(--danger); margin-top: 30px; width: 100%; padding: 12px; font-size: 11px; border-radius: 8px; font-weight: bold; opacity: 0.6; }
         
-        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        button.action-btn { padding: 14px; border-radius: 16px; font-weight: bold; cursor: pointer; border: none; transition: 0.2s; font-size: 0.9rem; }
-        
-        .btn-save { background: var(--p); color: white; grid-column: span 2; margin-top: 5px; padding: 18px; }
-        .btn-vac { background: var(--vac); color: white; }
-        .btn-sick { background: var(--sick); color: #333; }
-        .btn-del { background: var(--del); color: black; }
-        .btn-extra { background: var(--extra); color: white; }
-        /* Túlóra teljes szélességben a Törlés és Csúszó alatt */
-        .btn-ot { background: var(--overtime); color: white; grid-column: span 2; margin-top: 5px; display: none; }
-        
-        .btn-capture { background: #333; color: white; width: 100%; margin-top: 15px; grid-column: span 2; font-size: 0.8rem; }
-        #captureArea { position: absolute; left: -9999px; top: -9999px; width: 420px; padding: 20px; background: white; color: black; }
-        #captureArea table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        #captureArea th, #captureArea td { border: 1px solid #ccc; padding: 8px; text-align: center; font-size: 0.85rem; }
+        /* Értesítés gomb stílusa */
+        #notifBtn { font-size: 10px; background: #444; color: #aaa; border: none; padding: 5px 10px; border-radius: 20px; margin-bottom: 10px; cursor: pointer; }
     </style>
 </head>
-<body data-theme="light">
+<body class="dark">
 
-<div class="app">
+    <button class="theme-btn" onclick="toggleTheme()" id="tBtn">🌙</button>
+
     <div class="header">
-        <div class="top-row">
-            <select id="ySel" class="sel-box" onchange="renderCalendar()"></select>
-            <select id="mSel" class="sel-box" onchange="renderCalendar()"></select>
-            <button class="theme-toggle" onclick="toggleTheme()" id="tBtn">🌙</button>
-        </div>
-        <div class="stats">
-            <div class="stat-item">
-                <small>Havi munka</small>
-                <span id="tWork" class="stat-val">0ó 0p</span>
-            </div>
-            <div class="stat-item">
-                <small id="balLabel">Egyenleg</small>
-                <span id="tBal" class="stat-val">0ó 0p</span>
-            </div>
-            <div id="holBadge" class="holiday-badge">ÜNNEP</div>
-        </div>
+        <h2 style="margin:0; letter-spacing: 2px;">BEVÁSÁRLÓ LISTA</h2>
+        <button id="notifBtn" onclick="requestNotificationPermission()">🔔 Értesítések bekapcsolása</button>
     </div>
 
-    <div class="calendar-card">
-        <div class="weekdays">
-            <div>H</div><div>K</div><div>SZ</div><div>CS</div><div>P</div><div>SZ</div><div>V</div>
-        </div>
-        <div id="daysGrid" class="days"></div>
-        <div class="legend">
-            <div class="legend-item"><span class="dot" style="background:var(--less)"></span> Kevesebb mint 8 óra</div>
-            <div class="legend-item"><span class="dot" style="background:var(--vac)"></span> Szabadság</div>
-            <div class="legend-item"><span class="dot" style="background:var(--ok)"></span> Pontosan 8 óra</div>
-            <div class="legend-item"><span class="dot" style="background:var(--sick)"></span> Táppénz</div>
-            <div class="legend-item"><span class="dot" style="background:var(--more)"></span> Több mint 8 óra</div>
-            <div class="legend-item"><span class="dot" style="background:var(--overtime)"></span> Túlóra</div>
-            <div class="legend-item"><span class="dot" style="background:var(--extra)"></span> Csúszó</div>
-            <div class="legend-item"><span class="dot dot-holiday"></span> Ünnepnap 🇭🇺</div>
-        </div>
-        <button class="action-btn btn-capture" onclick="captureMonth()">📷 HÓNAP MENTÉSE KÉPKÉNT</button>
+    <div class="btn-row">
+        <button id="micBtn" class="main-btn" style="background: var(--primary);">🎤 HANG</button>
+        <button id="writeBtn" class="main-btn" style="background: var(--grey); color: var(--text);">⌨️ ÍRÁS</button>
     </div>
 
-    <div class="editor-card">
-        <span id="selectedDateText" class="date-label">-</span>
-        <div style="display:flex; justify-content:center; gap:10px; align-items:center;">
-            <input type="time" id="sTime" onfocus="handleFocus('sTime', '05:50')" oninput="updateCurrent()">
-            <span>-</span>
-            <input type="time" id="eTime" onfocus="handleFocus('eTime', '14:20')" oninput="updateCurrent()">
-        </div>
-        <div id="dNet" class="daily-res">0ó 0p</div>
-        <div class="btn-group">
-            <button class="action-btn btn-vac" onclick="setSpecial('vac')">SZABADSÁG</button>
-            <button class="action-btn btn-sick" onclick="setSpecial('sick')">TÁPPÉNZ</button>
-            <button class="action-btn btn-del" onclick="deleteDay()">TÖRLÉS</button>
-            <button class="action-btn btn-extra" onclick="setSpecial('extra')">CSÚSZÓ</button>
-            <button id="otBtn" class="action-btn btn-ot" onclick="setSpecial('ot')">TÚLÓRA</button>
-            <button class="action-btn btn-save" onclick="saveData()">MENTÉS</button>
-        </div>
-    </div>
-</div>
-
-<div id="captureArea"></div>
-
-<script>
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    document.body.setAttribute('data-theme', savedTheme);
-    document.getElementById('tBtn').innerText = savedTheme === 'dark' ? '☀️' : '🌙';
-
-    const months = ["Január","Február","Március","Április","Május","Június","Július","Augusztus","Szeptember","Október","November","December"];
+    <div id="activeItems" class="list-container"></div>
     
-    function getHolidaysForYear(y) {
-        let hols = {
-            [`${y}-0-1`]: "Újév", [`${y}-2-15`]: "Március 15.", [`${y}-4-1`]: "Munka ünnepe",
-            [`${y}-7-20`]: "Államalapítás", [`${y}-9-23`]: "1956-os forradalom", [`${y}-10-1`]: "Mindenszentek",
-            [`${y}-11-24`]: "Szenteste", [`${y}-11-25`]: "Karácsony", [`${y}-11-26`]: "Karácsony", [`${y}-11-31`]: "Szilveszter"
+    <div class="bottom-grid">
+        <div>
+            <div class="column-label">TALÁLTAM</div>
+            <div id="doneItems" class="list-container"></div>
+        </div>
+        <div>
+            <div class="column-label">NINCS</div>
+            <div id="missingItems" class="list-container"></div>
+        </div>
+    </div>
+    
+    <button class="clear-all" onclick="clearAll()">LISTA TÖRLÉSE</button>
+
+    <div id="inputModal" onclick="if(event.target == this) closeModal()">
+        <div class="modal-content">
+            <input type="text" id="manualInput" placeholder="Termék neve..." autocomplete="off">
+            <div class="btn-row" style="margin-bottom:0">
+                <button class="main-btn" style="background:#555;" onclick="closeModal()">MÉGSE</button>
+                <button class="main-btn" style="background:var(--primary);" onclick="handleManualAdd()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyC0fhL9VVErpN9LX6eJ8Tv5nuxF5Ea-qjE",
+            databaseURL: "https://kozoslista-e0717-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "kozoslista-e0717"
         };
-        const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4,
-              f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30,
-              i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451),
-              month = Math.floor((h + l - 7 * m + 114) / 31), day = ((h + l - 7 * m + 114) % 31) + 1;
-        
-        const easterMonday = new Date(y, month - 1, day + 1);
-        const goodFriday = new Date(y, month - 1, day - 2);
-        const pentecostMonday = new Date(y, month - 1, day + 50);
 
-        hols[`${y}-${goodFriday.getMonth()}-${goodFriday.getDate()}`] = "Nagypéntek";
-        hols[`${y}-${easterMonday.getMonth()}-${easterMonday.getDate()}`] = "Húsvéthétfő";
-        hols[`${y}-${pentecostMonday.getMonth()}-${pentecostMonday.getDate()}`] = "Pünkösdhétfő";
-        return hols;
-    }
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const listRef = db.ref('shoppingList');
 
-    let currentDay = new Date().getDate();
-    let currentYear = new Date().getFullYear();
+        let shoppingList = [];
+        let isRecording = false;
+        let isFirstLoad = true;
+        let recognition;
+        let dragTimer;
 
-    const ySel = document.getElementById('ySel');
-    for(let y=2024; y<=2030; y++) {
-        const opt = document.createElement('option'); opt.value = y; opt.text = y;
-        if(y === currentYear) opt.selected = true;
-        ySel.appendChild(opt);
-    }
+        // Hangfájl az értesítéshez (pittyenés)
+        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
 
-    const mSel = document.getElementById('mSel');
-    months.forEach((m, i) => {
-        const opt = document.createElement('option'); opt.value = i; opt.text = m;
-        if(i === new Date().getMonth()) opt.selected = true;
-        mSel.appendChild(opt);
-    });
-
-    function isHoliday(y, m, d) { return getHolidaysForYear(y)[`${y}-${m}-${d}`] || false; }
-
-    function renderCalendar() {
-        const y = parseInt(ySel.value), m = parseInt(mSel.value);
-        const daysGrid = document.getElementById('daysGrid');
-        daysGrid.innerHTML = '';
-        const shift = (new Date(y, m, 1).getDay() || 7) - 1;
-        const daysInMonth = new Date(y, m + 1, 0).getDate();
-        const saved = JSON.parse(localStorage.getItem(`work_${y}_${m}`)) || {};
-
-        for (let i = 0; i < shift; i++) {
-            const div = document.createElement('div'); div.className = 'day empty';
-            daysGrid.appendChild(div);
+        function requestNotificationPermission() {
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    document.getElementById('notifBtn').innerText = "✅ Értesítések aktívak";
+                    document.getElementById('notifBtn').style.background = "#2e7d32";
+                }
+            });
         }
 
-        for (let i = 1; i <= daysInMonth; i++) {
-            const div = document.createElement('div');
-            div.className = 'day'; div.id = `day-${i}`; div.innerText = i;
-            div.onclick = () => selectDay(i);
-            if(isHoliday(y, m, i)) div.classList.add('holiday');
-            const data = saved[i];
-            if (data && (data.s || data.isVac || data.isSick || data.isOT || data.isExtra)) {
-                if (data.isVac) div.classList.add('status-vac');
-                else if (data.isSick) div.classList.add('status-sick');
-                else if (data.isOT) div.classList.add('status-ot');
-                else if (data.isExtra) div.classList.add('status-extra');
-                else {
-                    const netto = calcNetto(data.s, data.e);
-                    if (netto === 480) div.classList.add('status-ok');
-                    else if (netto < 480) div.classList.add('status-less');
-                    else div.classList.add('status-more');
+        listRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            const newList = data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) : [];
+            
+            // Értesítés, ha új elem érkezik és nem az első betöltés
+            if (!isFirstLoad && newList.length > shoppingList.length) {
+                const newestItem = newList[newList.length - 1];
+                if (newestItem.status === 'active') {
+                    showNotification("Új termék érkezett!", newestItem.text);
+                    audio.play().catch(e => console.log("Hang lejátszása sikertelen (kell egy kattintás az oldalon)"));
                 }
             }
-            if (i === currentDay) div.classList.add('selected');
-            daysGrid.appendChild(div);
-        }
-        loadDayData(); calculateTotals();
-    }
-
-    function selectDay(d) {
-        currentDay = d;
-        document.querySelectorAll('.day').forEach(el => el.classList.remove('selected'));
-        if(document.getElementById(`day-${d}`)) document.getElementById(`day-${d}`).classList.add('selected');
-        loadDayData(); calculateTotals();
-    }
-
-    function loadDayData() {
-        const y = parseInt(ySel.value), m = parseInt(mSel.value);
-        const saved = JSON.parse(localStorage.getItem(`work_${y}_${m}`)) || {};
-        const data = saved[currentDay] || {s:'', e:'', isVac: false, isSick: false, isOT: false, isExtra: false};
-        
-        document.getElementById('sTime').value = data.s || '';
-        document.getElementById('eTime').value = data.e || '';
-        document.getElementById('selectedDateText').innerText = `${y}. ${months[m]} ${currentDay}.`;
-        
-        const dayOfWeek = new Date(y, m, currentDay).getDay();
-        const otBtn = document.getElementById('otBtn');
-
-        // Csak hétvégén jelenik meg a Túlóra
-        if (dayOfWeek === 0 || dayOfWeek === 6) {
-            otBtn.style.display = 'block';
-        } else {
-            otBtn.style.display = 'none';
-        }
-
-        updateCurrent();
-    }
-
-    function calcNetto(s, e) {
-        if(!s || !e) return 0;
-        const [h1, m1] = s.split(':').map(Number);
-        const [h2, m2] = e.split(':').map(Number);
-        let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
-        if (diff < 0) diff += 1440;
-        return Math.max(0, diff - 30);
-    }
-
-    function updateCurrent() {
-        const s = document.getElementById('sTime').value, e = document.getElementById('eTime').value;
-        const netto = calcNetto(s, e);
-        document.getElementById('dNet').innerText = s && e ? `${Math.floor(netto/60)}ó ${netto%60}p` : "0ó 0p";
-    }
-
-    function setSpecial(type) {
-        document.getElementById('sTime').value = "05:50";
-        document.getElementById('eTime').value = "14:20";
-        saveData(type === 'vac', type === 'sick', type === 'ot', type === 'extra');
-    }
-
-    function deleteDay() {
-        const y = ySel.value, m = mSel.value;
-        const saved = JSON.parse(localStorage.getItem(`work_${y}_${m}`)) || {};
-        delete saved[currentDay];
-        localStorage.setItem(`work_${y}_${m}`, JSON.stringify(saved));
-        renderCalendar();
-    }
-
-    function saveData(isVac = false, isSick = false, isOT = false, isExtra = false) {
-        const y = ySel.value, m = mSel.value;
-        const saved = JSON.parse(localStorage.getItem(`work_${y}_${m}`)) || {};
-        saved[currentDay] = { 
-            s: document.getElementById('sTime').value, 
-            e: document.getElementById('eTime').value,
-            isVac: isVac, isSick: isSick, isOT: isOT, isExtra: isExtra
-        };
-        localStorage.setItem(`work_${y}_${m}`, JSON.stringify(saved));
-        renderCalendar();
-    }
-
-    function calculateTotals() {
-        const targetY = parseInt(ySel.value), targetM = parseInt(mSel.value);
-        let cumulativeBalance = 0, monthlyWork = 0;
-        const holidayName = isHoliday(targetY, targetM, currentDay);
-        const holBadge = document.getElementById('holBadge');
-
-        for (let m = 0; m <= targetM; m++) {
-            const saved = JSON.parse(localStorage.getItem(`work_${targetY}_${m}`)) || {};
-            for (let d in saved) {
-                if (m === targetM && parseInt(d) > currentDay) continue;
-                const data = saved[d];
-                if (data.s && data.e) {
-                    const netto = calcNetto(data.s, data.e);
-                    if (data.isOT) {
-                        cumulativeBalance += 0; 
-                    } else if (data.isExtra) {
-                        cumulativeBalance -= 480; 
-                    } else {
-                        cumulativeBalance += (netto - 480);
-                    }
-                    
-                    if (m === targetM) {
-                        if (data.isExtra) monthlyWork += 480;
-                        else monthlyWork += netto;
-                    }
-                }
-            }
-        }
-        document.getElementById('tWork').innerText = `${Math.floor(monthlyWork/60)}ó ${monthlyWork%60}p`;
-        document.getElementById('balLabel').innerText = `Egyenleg (${months[targetM]} ${currentDay}-ig)`;
-        if (holidayName) { holBadge.innerText = holidayName; holBadge.style.display = 'block'; }
-        else { holBadge.style.display = 'none'; }
-        const bEl = document.getElementById('tBal');
-        bEl.innerText = (cumulativeBalance < 0 ? '-' : '+') + `${Math.floor(Math.abs(cumulativeBalance)/60)}ó ${Math.abs(cumulativeBalance)%60}p`;
-        bEl.style.color = cumulativeBalance < 0 ? '#ffb3b3' : '#b3ffcc';
-    }
-
-    function toggleTheme() {
-        const nt = document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-        document.body.setAttribute('data-theme', nt);
-        document.getElementById('tBtn').innerText = nt === 'dark' ? '☀️' : '🌙';
-        localStorage.setItem('theme', nt);
-    }
-
-    async function captureMonth() {
-        const y = ySel.value, m = mSel.value;
-        const saved = JSON.parse(localStorage.getItem(`work_${y}_${m}`)) || {};
-        const captureArea = document.getElementById('captureArea');
-        let monthlyWork = 0, bal = 0, rows = '';
-        const daysInMonth = new Date(y, parseInt(m) + 1, 0).getDate();
-        for(let d=1; d<=daysInMonth; d++) {
-            const data = saved[d] || {};
-            const holName = isHoliday(y, m, d);
-            const dayOfWeek = new Date(y, m, d).getDay();
-            const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
-
-            if(data.s && data.e) {
-                const netto = data.isExtra ? 480 : calcNetto(data.s, data.e);
-                if (data.isOT) bal += 0; 
-                else if (data.isExtra) bal -= 480;
-                else bal += (netto - 480);
-                
-                monthlyWork += netto;
-                let st = data.isVac ? 'SZABI' : (data.isSick ? 'TÁPPÉNZ' : (data.isOT ? 'TÚLÓRA' : (data.isExtra ? 'CSÚSZÓ' : (netto > 480 ? '+' : (netto < 480 ? '-' : 'OK')))));
-                if(holName && !isWeekend) st += ` / ${holName}`;
-                let rowColor = (data.isOT || data.isExtra) ? 'style="background:#f3e5f5;"' : '';
-                rows += `<tr ${rowColor}><td>${d}.</td><td>${data.isExtra ? '---' : data.s}</td><td>${data.isExtra ? '---' : data.e}</td><td>${Math.floor(netto/60)}ó ${netto%60}p</td><td>${st}</td></tr>`;
-            } else if(holName && !isWeekend) {
-                rows += `<tr style="background:#ffecec;"><td>${d}.</td><td colspan="3">---</td><td>${holName}</td></tr>`;
-            }
-        }
-        captureArea.innerHTML = `
-            <div style="text-align:center; border-bottom:2px solid #005691; padding-bottom:10px;">
-                <h2 style="margin:0; color:#005691;">${y}. ${months[m]}</h2>
-                <small style="color:#888;">Munkaidő Kimutatás</small>
-            </div>
-            <div style="background:#005691; color:white; display:flex; justify-content:space-around; padding:15px; border-radius:12px; margin:15px 0;">
-                <div><small>HAVI MUNKA</small><br><b>${Math.floor(monthlyWork/60)}ó ${monthlyWork%60}p</b></div>
-                <div><small>HAVI EGYENLEG</small><br><b>${bal >= 0 ? '+' : ''}${Math.floor(bal/60)}ó ${Math.abs(bal)%60}p</b></div>
-            </div>
-            <table><tr style="background:#f0f0f0;"><th>Nap</th><th>Kezdés</th><th>Vége</th><th>Netto</th><th>Státusz</th></tr>${rows}</table>
-        `;
-        const canvas = await html2canvas(captureArea, { scale: 2 });
-        canvas.toBlob(async (blob) => {
-            const file = new File([blob], `Munkaido_${y}_${months[m]}.png`, { type: 'image/png' });
-            if (navigator.share && navigator.canShare({ files: [file] })) {
-                await navigator.share({ files: [file], title: `Munkaidő ${y} ${months[m]}` });
-            } else {
-                const link = document.createElement('a'); link.href = URL.createObjectURL(blob);
-                link.download = `Munkaido_${y}_${months[m]}.png`; link.click();
-            }
+            
+            shoppingList = newList;
+            isFirstLoad = false;
+            renderAll();
         });
-    }
 
-    function handleFocus(id, def) {
-        const el = document.getElementById(id);
-        if (!el.value) { el.value = def; updateCurrent(); }
-    }
-    renderCalendar();
-</script>
+        function showNotification(title, body) {
+            if (Notification.permission === "granted") {
+                new Notification(title, { body: body, icon: 'https://cdn-icons-png.flaticon.com/512/3523/3523887.png' });
+            }
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('light');
+            document.getElementById('tBtn').innerText = document.body.classList.contains('light') ? '☀️' : '🌙';
+        }
+
+        document.getElementById('writeBtn').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            document.getElementById('inputModal').style.display = 'flex';
+            setTimeout(() => { document.getElementById('manualInput').focus(); }, 150);
+        });
+
+        function closeModal() { document.getElementById('inputModal').style.display = 'none'; document.getElementById('manualInput').value = ''; }
+        function handleManualAdd() { const val = document.getElementById('manualInput').value.trim(); if(val) { addItem(val); closeModal(); } }
+        document.getElementById('manualInput').onkeypress = (e) => { if (e.key === "Enter") handleManualAdd(); };
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.lang = 'hu-HU';
+            recognition.onresult = (e) => { addItem(e.results[0][0].transcript); stopRecording(); };
+        }
+
+        document.getElementById('micBtn').onclick = () => {
+            if (!isRecording) {
+                isRecording = true; recognition.start();
+                document.getElementById('micBtn').innerText = "🛑 STOP";
+                document.getElementById('micBtn').style.background = "#ff3b30";
+            } else { stopRecording(); }
+        };
+
+        function stopRecording() {
+            isRecording = false; if(recognition) recognition.stop();
+            document.getElementById('micBtn').innerText = "🎤 HANG";
+            document.getElementById('micBtn').style.background = "var(--primary)";
+        }
+
+        function addItem(text) { listRef.push({ text: text, status: 'active', order: 999, time: Date.now() }); }
+        function updateStatus(id, newStatus) { listRef.child(id).update({ status: newStatus, time: Date.now() }); }
+        function deleteItem(id) { listRef.child(id).remove(); }
+
+        function renderAll() {
+            const act = document.getElementById('activeItems');
+            const don = document.getElementById('doneItems');
+            const mis = document.getElementById('missingItems');
+            act.innerHTML = ''; don.innerHTML = ''; mis.innerHTML = '';
+
+            const activeItems = shoppingList.filter(i => i.status === 'active').sort((a, b) => a.order - b.order);
+            const doneItems = shoppingList.filter(i => i.status === 'done').sort((a,b) => b.time - a.time);
+            const missingItems = shoppingList.filter(i => i.status === 'x').sort((a,b) => b.time - a.time);
+
+            activeItems.forEach(item => act.appendChild(createItemEl(item, true)));
+            doneItems.forEach(item => don.appendChild(createItemEl(item, false)));
+            missingItems.forEach(item => mis.appendChild(createItemEl(item, false)));
+        }
+
+        function createItemEl(item, isActive) {
+            const div = document.createElement('div');
+            div.className = `item ${item.status === 'done' ? 'checked' : (item.status === 'x' ? 'cancelled' : '')}`;
+            div.dataset.id = item.id;
+            
+            div.innerHTML = `
+                <span class="item-text">${item.text}</span>
+                <div class="actions">
+                    ${item.status === 'active' ? `
+                        <button class="btn-sm btn-check-full" onclick="updateStatus('${item.id}', 'done')">✔</button>
+                        <button class="btn-sm btn-x-full" onclick="updateStatus('${item.id}', 'x')">✖</button>
+                        <button class="btn-sm" onclick="deleteItem('${item.id}')">🗑</button>
+                    ` : `
+                        <button class="btn-sm" onclick="updateStatus('${item.id}', 'active')">↩</button>
+                        <button class="btn-sm" onclick="deleteItem('${item.id}')">🗑</button>
+                    `}
+                </div>
+            `;
+
+            if(isActive) {
+                div.addEventListener('touchstart', (e) => {
+                    if(e.target.tagName === 'BUTTON') return;
+                    dragTimer = setTimeout(() => {
+                        // Rezgés felerősítése (hátha!)
+                        if ("vibrate" in navigator) navigator.vibrate([100, 50, 100]);
+                        div.classList.add('dragging');
+                    }, 500);
+                }, {passive: true});
+
+                div.addEventListener('touchend', () => {
+                    clearTimeout(dragTimer);
+                    if(div.classList.contains('dragging')) {
+                        div.classList.remove('dragging');
+                        const updates = {};
+                        document.querySelectorAll('#activeItems .item').forEach((el, index) => {
+                            updates[`${el.dataset.id}/order`] = index;
+                        });
+                        listRef.update(updates);
+                    }
+                });
+
+                div.addEventListener('touchmove', (e) => {
+                    if(!div.classList.contains('dragging')) { clearTimeout(dragTimer); return; }
+                    e.preventDefault();
+                    const container = document.getElementById('activeItems');
+                    const afterElement = getDragAfterElement(container, e.touches[0].clientY);
+                    if (afterElement == null) container.appendChild(div);
+                    else container.insertBefore(div, afterElement);
+                }, {passive: false});
+            }
+            return div;
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggables = [...container.querySelectorAll('.item:not(.dragging)')];
+            return draggables.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) return { offset: offset, element: child };
+                else return closest;
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function clearAll() { if(confirm("Mindent törölsz?")) listRef.remove(); }
+    </script>
 </body>
 </html>
